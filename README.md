@@ -6,6 +6,6 @@ A continuacion se listan los metodos que se implementaron,para asi tener una mej
                                              
 **- getMutatePoblation(myListOfParents):** devuelve una lista de los hijos de la anterior generacion, con su misma longitud. La generacion anterior es pasada por parametro.
 
-**- getParWithMaxVariableValue:** esta funcion, dada una poblacion pasada como parametro, devuelve el objeto que posee el mayor valor de entrada (variable).
+**- getPairWithMaxVariableValue:** esta funcion, dada una poblacion pasada como parametro, devuelve el objeto que posee el mayor valor de entrada (variable).
 
-**- getParWithMinVariableValue:** idem a la anterior funcion, pero en vez del maximo, devuelve el minimo.
+**- getPairWithMinVariableValue:** idem a la anterior funcion, pero en vez del maximo, devuelve el minimo.
