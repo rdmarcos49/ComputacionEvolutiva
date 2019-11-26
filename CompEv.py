@@ -18,6 +18,7 @@ class ListOfPairs():
     def __init__(self,dimension): # deberia ser variable global o constante, ya que la uso en otras funciones
         self.variables = []
         self.deviations = []
+        self.fitnessValue = -1.0
         for i in range(dimension):
             self.variables.append(np.random.randint(low=minVariableValue, high=maxVariableValue))
             self.deviations.append('{0:.5g}'.format(np.random.uniform(low=0.0, high=2.0)))
@@ -46,6 +47,7 @@ class ListOfPairs():
         string += ">"
         print(string)
 
+
 # Inicializo la poblacion, pasando el tamaño de la misma, y la dimension para ackley
 def initPopulation(sizeOfInitialPopulation,dimension):
     firstGeneration = []
@@ -54,12 +56,91 @@ def initPopulation(sizeOfInitialPopulation,dimension):
         firstGeneration.append(listOfPair)
     return firstGeneration
 
-# Dado un valor x (o conjunto de valores xi) de entrada, obtengo el valor de la funcion evaluada
-def getAckleyResult(xi):
-    resultOfAckleyFunction = "aca se retornaria el resultado de la funcion de ackley"
+# Funcion que le paso una lista de variables y desviaciones, devolviendome una lista de 
+# igual longitud con los elementos mutados
+def getMutatedElements(ListOfPairs):
+    mutatedVariables = []
+    mutatedDeviations = []
+    for k in range(len(ListOfPairs.variables)):
+        tempMutatedDeviation = "formula de mutacion de la desviacion"
+        tempMutatedVariable = "formula de mutacion de la variable (usando la desviacion mutada)"
+        mutatedVariables.append(tempMutatedVariable)
+        mutatedDeviations.append(tempMutatedDeviation)
+    result = ListOfPairs() # //todo chequear si puedo construirlo sin pasarle los parametros del constructor
+    result.variables = mutatedVariables
+    result.deviations = mutatedDeviations
+    return result
+
+# Me devuelve los hijos de mi generacion actual (pero no es la generacion siguiente)
+def getChilds(listOfParents):
+    listOfChilds = []
+    for parent in listOfParents:
+        listOfChilds.append(getMutatedElements(parent))
+    return listOfChilds
+
+
+# Funcion que me devuelve el fitness
+def getAckleyResult(listOfVariables):
+
+    # Valores recomendados, a = 20, b = 0.2, c = 2*pi
+
+    a = 20
+    b = 0.2
+    c = 2 * np.pi
+
+    # Primer sumatoria
+    firstSum = 0
+    for xi in listOfVariables: 
+        firstSum += np.power(xi,2)
+
+    firstSum = -b * np.sqrt((1/len(listOfVariables))*firstSum)
+
+    # Segunda sumatoria
+    secondSum = 0
+    for xi in listOfVariables:
+        secondSum += (np.cos(c*xi))
+
+    secondSum = (1/len(listOfVariables)) * secondSum 
+
+    resultOfAckleyFunction = - a * np.exp(firstSum) - np.exp(secondSum) + a + np.exp(1)
+
     return resultOfAckleyFunction
 
-# Prueba de los metodos
-firstGeneration = initPopulation(10,5)
-for fg in firstGeneration:
-    fg.showContent()
+# Dado los padres y sus hijos, devuelve a los que sobrevivieron a la seleccion
+def getSupervivientes(listOfParents, listOfChilds):
+    listOfParentsAndChilds = listOfParents + listOfChilds
+
+    for element in listOfParentsAndChilds: 
+        element.fitnessValue = getAckleyResult(element.variables)
+
+    # //todo filtrar supervivientes
+    supervivientes = ["el 1° mejor","el 2° mejor", "...", "el 10° mejor", "resto elegido al azar"]
+    return supervivientes
+
+# Esta funcion devuelve la siguiente generacion
+def getNextGeneration(oldGeneration):
+    listOfChilds = getChilds(oldGeneration)
+    listOfSupervivientes = getSupervivientes(oldGeneration, listOfChilds)
+    return listOfSupervivientes
+
+# Metodo que lleva a cabo el proceso evolutivo
+def initRun(numberOfGenerations, sizeOfInitialPopulation, dimension):
+    targetGeneration = initPopulation(sizeOfInitialPopulation, dimension) # Primera generacion
+    for xi in range(numberOfGenerations):
+        targetGeneration = getNextGeneration(targetGeneration)
+    return targetGeneration
+
+
+
+#################################
+
+
+
+prueba = []
+prueba.append(0)
+prueba.append(0)
+print(getAckleyResult(prueba))
+
+firstGeneration = initPopulation(5, 2)
+for i in firstGeneration:
+    i.showContent()
