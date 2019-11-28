@@ -1,5 +1,6 @@
 import matplotlib.pyplot as plt
 import numpy as np
+import sys
 
 # Minimo valor para el valor de entrada de la variable
 minVariableValue = -32768
@@ -134,13 +135,17 @@ def initRun(numberOfGenerations, sizeOfInitialPopulation, dimension):
 
 #################################
 
+# Tomo los parametros y los paso de str a int
+
+numberOfGenerations = int(sys.argv[1])
+sizeOfInitialPopilation = int(sys.argv[2])
+dimension = int(sys.argv[3])
+
+print("num de generaciones: " + str(numberOfGenerations))
+print("tamaño de poblacion inicial: " + str(sizeOfInitialPopilation))
+print("numero de dimensiones: " + str(dimension))
 
 
-prueba = []
-prueba.append(0)
-prueba.append(0)
-print(getAckleyResult(prueba))
-
-firstGeneration = initPopulation(5, 2)
+firstGeneration = initPopulation(sizeOfInitialPopilation,dimension)
 for i in firstGeneration:
     i.showContent()
