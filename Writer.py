@@ -19,3 +19,9 @@ def documentatePlots(path, numberOfRun, x):
 	plt.ylabel('Fitness value')
 	plt.savefig(path + '/Run_'+ str(numberOfRun) +'_avgFitness.png', bbox_inches='tight')
 	plt.close()
+
+def documentateSetup(fileText,numberOfRuns,sizeOfInitialPopulation,numberOfGenerations,dimension):
+	fileText.write("Numero de corridas: " + str(numberOfRuns) + "\n")
+	fileText.write("Numero de generacion por corrida: " + str(numberOfGenerations) + "\n")
+	fileText.write("Tamaño de la poblacion inicial: " + str(sizeOfInitialPopulation) + "\n")
+	fileText.write("Dimension: " + str(dimension))

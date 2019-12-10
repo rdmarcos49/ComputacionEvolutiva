@@ -1,4 +1,4 @@
-from Writer import documentateHeader, documentateBody, documentatePlots
+from Writer import *
 from Ackley import getAckleyResult
 from Filtro import getSupervivientes
 
@@ -77,10 +77,10 @@ def getMutatedElements(listOfPairs):
     mutatedDeviations = []
     for k in range(len(listOfPairs.variables)):
         tempMutatedDeviation = (float(listOfPairs.deviations[k])*(1+alpha*(np.random.normal(0,1))))
-        tempMutatedVariable = (listOfPairs.variables[k]+tempMutatedDeviation)
+        tempMutatedVariable = (listOfPairs.variables[k]+tempMutatedDeviation*(np.random.normal(0,1)))
         mutatedVariables.append(tempMutatedVariable)
         mutatedDeviations.append(tempMutatedDeviation)
-    instanceOfListOfPairs = ListOfPairs(dimension) ########### ME FALTA LA DIMENSION
+    instanceOfListOfPairs = ListOfPairs(dimension)
     instanceOfListOfPairs.variables = mutatedVariables
     instanceOfListOfPairs.deviations = mutatedDeviations
     return instanceOfListOfPairs
@@ -183,6 +183,10 @@ def main(numberOfRuns):
     path = path.replace("/","-")
     path = path.replace(":",".")
     os.mkdir(path)
+    fileRunName = "Especificaciones de las corridas"
+    fileSetup = open(path + "/"+ fileRunName +".txt", "w") 
+    documentateSetup(fileSetup, numberOfRuns, sizeOfInitialPopulation, numberOfGenerations, dimension)
+    fileSetup.close()
     count = 1
     for i in range(numberOfRuns):
         initRun(path, count, numberOfGenerations, sizeOfInitialPopulation, dimension)
@@ -237,12 +241,6 @@ def codeButtonRun():
     sizeOfInitialPopulation = int(sizeOfInitialPopulationx)
     numberOfGenerations = int(numberOfGenerationsx)
     dimension = int(dimensionx)
-    print("numero de runs: " + str(numberOfRuns))
-    print("size of initial Population: " + str(sizeOfInitialPopulation))
-    print("number of generations: " + str(numberOfGenerations))
-    print("dimension: " + str(dimension))
-    print("##################################")
-    print("##################################")
     close_window()
     main(numberOfRuns)
     
