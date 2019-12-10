@@ -20,8 +20,13 @@ def documentatePlots(path, numberOfRun, x):
 	plt.savefig(path + '/Run_'+ str(numberOfRun) +'_avgFitness.png', bbox_inches='tight')
 	plt.close()
 
-def documentateSetup(fileText,numberOfRuns,sizeOfInitialPopulation,numberOfGenerations,dimension):
+def documentateSetup(fileText,numberOfRuns,sizeOfInitialPopulation,numberOfGenerations,dimension, metodoInicial):
 	fileText.write("Numero de corridas: " + str(numberOfRuns) + "\n")
 	fileText.write("Numero de generacion por corrida: " + str(numberOfGenerations) + "\n")
 	fileText.write("Tamaño de la poblacion inicial: " + str(sizeOfInitialPopulation) + "\n")
-	fileText.write("Dimension: " + str(dimension))
+	fileText.write("Dimension: " + str(dimension) + "\n")
+	fileText.write("\n")
+	if (metodoInicial==1):
+		fileText.write("La corrida se inicializo con valores optimos para acelerar la convergencia")
+	else:
+		fileText.write("La corrida fue inicializada con valores totalmente aleatorios")

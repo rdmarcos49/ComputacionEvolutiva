@@ -70,6 +70,17 @@ def initPopulation(sizeOfInitialPopulation,dimension):
         firstGeneration.append(listOfPair)
     return firstGeneration
 
+def initOptimazedPopulation(sizeOfInitialPopulation,dimension):
+    initPopulation = []
+    for j in range(sizeOfInitialPopulation):
+        variables = []
+        temp = ListOfPairs(dimension)
+        for i in range(dimension):
+                variables.append(np.random.randint(low=-45, high=45))
+        temp.variables = variables
+        initPopulation.append(temp)
+    return initPopulation
+
 # Funcion que le paso una lista de variables y desviaciones, devolviendome una lista de 
 # igual longitud con los elementos mutados
 def getMutatedElements(listOfPairs):
@@ -108,6 +119,9 @@ def getNextGeneration(oldGeneration):
 # Metodo que lleva a cabo el proceso evolutivo
 def initRun(path, numberOfRun,numberOfGenerations, sizeOfInitialPopulation, dimension):
     targetGeneration = initPopulation(sizeOfInitialPopulation, dimension) # Primera generacion
+
+    if(metodoInicial == 1):
+        targetGeneration = initOptimazedPopulation(sizeOfInitialPopulation,dimension)
 
     fileRunName = "Run" + str(numberOfRun)
 
@@ -185,7 +199,7 @@ def main(numberOfRuns):
     os.mkdir(path)
     fileRunName = "Especificaciones de las corridas"
     fileSetup = open(path + "/"+ fileRunName +".txt", "w") 
-    documentateSetup(fileSetup, numberOfRuns, sizeOfInitialPopulation, numberOfGenerations, dimension)
+    documentateSetup(fileSetup, numberOfRuns, sizeOfInitialPopulation, numberOfGenerations, dimension, metodoInicial)
     fileSetup.close()
     count = 1
     for i in range(numberOfRuns):
@@ -227,16 +241,28 @@ poblacionLabel.grid(row=2, column=0, sticky="e", pady=4)
 dimensionLabel = Label(miFrame, text="Dimention")
 dimensionLabel.grid(row=3, column=0, sticky="e", pady=4)
 
+
+varOpcion = IntVar()
+Radiobutton(raiz,text='Utilizar valores optimizados',variable=varOpcion,value=1).pack()
+Radiobutton(raiz,text='Utilizar valores optimizados',variable=varOpcion,value=1).select()
+Radiobutton(raiz,text='Utilizar valores totalmente estocasticos',variable=varOpcion,value=2).pack()
+
+inicialLabel = Label(miFrame, text = 'Valores iniciales:')
+inicialLabel.grid(row=4,column=0,sticky='w',pady=4)
+
+
 def codeButtonRun():
     global numberOfRuns
     global numberOfGenerations
     global sizeOfInitialPopulation
     global dimension
+    global metodoInicial
     numberOfRunsx = cuadroRuns.get()
     sizeOfInitialPopulationx = cuadroPoblacion.get()
     numberOfGenerationsx = cuadroGeneration.get()
     dimensionx = cuadroDimension.get()
 
+    metodoInicial=int(varOpcion.get())
     numberOfRuns = int(numberOfRunsx)
     sizeOfInitialPopulation = int(sizeOfInitialPopulationx)
     numberOfGenerations = int(numberOfGenerationsx)
@@ -253,6 +279,7 @@ numberOfRuns = 0
 numberOfGenerations = 0
 sizeOfInitialPopulation = 0
 dimension = 0
+metodoInicial = 1
 
 def close_window(): 
     raiz.destroy()
