@@ -1,6 +1,12 @@
+from Writer import documentateHeader, documentateBody, documentatePlots
+from Ackley import getAckleyResult
+from Filtro import getSupervivientes
+
 import matplotlib.pyplot as plt
 import numpy as np
-import sys
+from tkinter import *
+from datetime import datetime
+import os
 
 # Minimo valor para el valor de entrada de la variable
 minVariableValue = -32768
@@ -10,6 +16,8 @@ maxVariableValue = 32767
 
 # Valor alfa para la mutacion
 alpha = 0.2
+
+elitePercent = 0.1
 
 
 class ListOfPairs():
@@ -48,6 +56,11 @@ class ListOfPairs():
         string += ">"
         print(string)
 
+def getAllAvgOfRun(listaDeTuplas): # por convencion el avg esta en listaDeTuplas[2]
+    allAvgOfRun = []
+    for tupla in listaDeTuplas:
+        allAvgOfRun.append(tupla[2])
+    return allAvgOfRun
 
 # Inicializo la poblacion, pasando el tamaño de la misma, y la dimension para ackley
 def initPopulation(sizeOfInitialPopulation,dimension):
@@ -59,18 +72,18 @@ def initPopulation(sizeOfInitialPopulation,dimension):
 
 # Funcion que le paso una lista de variables y desviaciones, devolviendome una lista de 
 # igual longitud con los elementos mutados
-def getMutatedElements(ListOfPairs):
+def getMutatedElements(listOfPairs):
     mutatedVariables = []
     mutatedDeviations = []
-    for k in range(len(ListOfPairs.variables)):
-        tempMutatedDeviation = "formula de mutacion de la desviacion"
-        tempMutatedVariable = "formula de mutacion de la variable (usando la desviacion mutada)"
+    for k in range(len(listOfPairs.variables)):
+        tempMutatedDeviation = (float(listOfPairs.deviations[k])*(1+alpha*(np.random.normal(0,1))))
+        tempMutatedVariable = (listOfPairs.variables[k]+tempMutatedDeviation)
         mutatedVariables.append(tempMutatedVariable)
         mutatedDeviations.append(tempMutatedDeviation)
-    result = ListOfPairs() # //todo chequear si puedo construirlo sin pasarle los parametros del constructor
-    result.variables = mutatedVariables
-    result.deviations = mutatedDeviations
-    return result
+    instanceOfListOfPairs = ListOfPairs(dimension) ########### ME FALTA LA DIMENSION
+    instanceOfListOfPairs.variables = mutatedVariables
+    instanceOfListOfPairs.deviations = mutatedDeviations
+    return instanceOfListOfPairs
 
 # Me devuelve los hijos de mi generacion actual (pero no es la generacion siguiente)
 def getChilds(listOfParents):
@@ -80,72 +93,180 @@ def getChilds(listOfParents):
     return listOfChilds
 
 
-# Funcion que me devuelve el fitness
-def getAckleyResult(listOfVariables):
-
-    # Valores recomendados, a = 20, b = 0.2, c = 2*pi
-
-    a = 20
-    b = 0.2
-    c = 2 * np.pi
-
-    # Primer sumatoria
-    firstSum = 0
-    for xi in listOfVariables: 
-        firstSum += np.power(xi,2)
-
-    firstSum = -b * np.sqrt((1/len(listOfVariables))*firstSum)
-
-    # Segunda sumatoria
-    secondSum = 0
-    for xi in listOfVariables:
-        secondSum += (np.cos(c*xi))
-
-    secondSum = (1/len(listOfVariables)) * secondSum 
-
-    resultOfAckleyFunction = - a * np.exp(firstSum) - np.exp(secondSum) + a + np.exp(1)
-
-    return resultOfAckleyFunction
-
-# Dado los padres y sus hijos, devuelve a los que sobrevivieron a la seleccion
-def getSupervivientes(listOfParents, listOfChilds):
-    listOfParentsAndChilds = listOfParents + listOfChilds
-
-    for element in listOfParentsAndChilds: 
-        element.fitnessValue = getAckleyResult(element.variables)
-
-    # //todo filtrar supervivientes
-    supervivientes = ["el 1° mejor","el 2° mejor", "...", "el 10° mejor", "resto elegido al azar"]
-    return supervivientes
 
 # Esta funcion devuelve la siguiente generacion
 def getNextGeneration(oldGeneration):
     listOfChilds = getChilds(oldGeneration)
+
+    # Le asigno un valor de fitness a cada hijo
+    for element in listOfChilds: 
+        element.fitnessValue = getAckleyResult(element.variables)
+
     listOfSupervivientes = getSupervivientes(oldGeneration, listOfChilds)
     return listOfSupervivientes
 
 # Metodo que lleva a cabo el proceso evolutivo
-def initRun(numberOfGenerations, sizeOfInitialPopulation, dimension):
+def initRun(path, numberOfRun,numberOfGenerations, sizeOfInitialPopulation, dimension):
     targetGeneration = initPopulation(sizeOfInitialPopulation, dimension) # Primera generacion
+
+    fileRunName = "Run" + str(numberOfRun)
+
+    # crear archivo
+    file = open(path + "/"+ fileRunName +".txt", "w") 
+
+
+    # Le inicializo el fitness a la primera generacion
+    for elem in targetGeneration:
+        elem.fitnessValue = getAckleyResult(elem.variables)
+
+
+    listaDeDatos = []
+    listaDeDatos.append(getTupleValues(targetGeneration))
+
+    hardcodedFlag = 0
+
+    minFitnessOfRun = 0
+    maxFitnessOfRun = 0
+    avgFitnessOfRun = 0
+
+    for tuples in listaDeDatos:
+        minFitnessOfRun = tuples[0]
+        maxFitnessOfRun = tuples[1]
+        avgFitnessOfRun = tuples[2]
+        if(hardcodedFlag > 0):
+            break
+        hardcodedFlag+=1
+
+    # Corro el algoritmo tantas veces como generaciones me hayan asignado
     for xi in range(numberOfGenerations):
         targetGeneration = getNextGeneration(targetGeneration)
+        tempTuple = getTupleValues(targetGeneration)
+        listaDeDatos.append(tempTuple)
+        if(tempTuple[0] < minFitnessOfRun):
+            minFitnessOfRun = tempTuple[0]
+        if(tempTuple[1] > maxFitnessOfRun):
+            maxFitnessOfRun = tempTuple[1]
+        avgFitnessOfRun+=tempTuple[2]
+    avgFitnessOfRun = avgFitnessOfRun / numberOfGenerations
+
+    listaDeAvg = getAllAvgOfRun(listaDeDatos)
+
+    documentateHeader(file, minFitnessOfRun, maxFitnessOfRun, avgFitnessOfRun)
+    documentateBody(file, listaDeDatos)
+    documentatePlots(path,numberOfRun,listaDeAvg)
+    
+    file.close()
+
     return targetGeneration
 
+def getTupleValues(actualGeneration):
+    minValue = actualGeneration[0].fitnessValue
+    maxValue = actualGeneration[0].fitnessValue
+    avgValue = 0
+
+    for elem in actualGeneration:
+        if(elem.fitnessValue < minValue):
+            minValue=elem.fitnessValue
+        if(elem.fitnessValue > maxValue):
+            maxValue=elem.fitnessValue
+        avgValue += elem.fitnessValue
+    avgValue = avgValue / (len(actualGeneration))
+    temp = (minValue, maxValue, avgValue)
+    return temp
 
 
-#################################
+    
 
-# Tomo los parametros y los paso de str a int
+def main(numberOfRuns):
+    tempDate = datetime.now()
+    path = tempDate.strftime("%d/%m/%Y %H:%M:%S")
+    path = path.replace("/","-")
+    path = path.replace(":",".")
+    os.mkdir(path)
+    count = 1
+    for i in range(numberOfRuns):
+        initRun(path, count, numberOfGenerations, sizeOfInitialPopulation, dimension)
+        count+=1
 
-numberOfGenerations = int(sys.argv[1])
-sizeOfInitialPopilation = int(sys.argv[2])
-dimension = int(sys.argv[3])
 
-print("num de generaciones: " + str(numberOfGenerations))
-print("tamaño de poblacion inicial: " + str(sizeOfInitialPopilation))
-print("numero de dimensiones: " + str(dimension))
+#################################################################
+
+raiz = Tk()
+miFrame = Frame(raiz, width=1200, height=600)
+miFrame.pack()
+
+cuadroRuns = Entry(miFrame)
+cuadroRuns.focus_set()
+cuadroRuns.grid(row=0, column=1, pady=4)
+
+cuadroGeneration = Entry(miFrame)
+cuadroGeneration.focus_set()
+cuadroGeneration.grid(row=1, column=1, pady=4)
+
+cuadroPoblacion = Entry(miFrame)
+cuadroPoblacion.focus_set()
+cuadroPoblacion.grid(row=2, column=1, pady=4)
+
+cuadroDimension = Entry(miFrame)
+cuadroDimension.focus_set()
+cuadroDimension.grid(row=3, column=1, pady=4)
+
+runsLabel = Label(miFrame, text="Number of runs:")
+runsLabel.grid(row=0, column=0, sticky="e", pady=4)
+
+generationLabel = Label(miFrame, text="Number of generations:")
+generationLabel.grid(row=1, column=0, sticky="e", pady=4)
+
+poblacionLabel = Label(miFrame, text="Population size:")
+poblacionLabel.grid(row=2, column=0, sticky="e", pady=4)
+
+dimensionLabel = Label(miFrame, text="Dimention")
+dimensionLabel.grid(row=3, column=0, sticky="e", pady=4)
+
+def codeButtonRun():
+    global numberOfRuns
+    global numberOfGenerations
+    global sizeOfInitialPopulation
+    global dimension
+    numberOfRunsx = cuadroRuns.get()
+    sizeOfInitialPopulationx = cuadroPoblacion.get()
+    numberOfGenerationsx = cuadroGeneration.get()
+    dimensionx = cuadroDimension.get()
+
+    numberOfRuns = int(numberOfRunsx)
+    sizeOfInitialPopulation = int(sizeOfInitialPopulationx)
+    numberOfGenerations = int(numberOfGenerationsx)
+    dimension = int(dimensionx)
+    print("numero de runs: " + str(numberOfRuns))
+    print("size of initial Population: " + str(sizeOfInitialPopulation))
+    print("number of generations: " + str(numberOfGenerations))
+    print("dimension: " + str(dimension))
+    print("##################################")
+    print("##################################")
+    close_window()
+    main(numberOfRuns)
+    
+
+botonRun = Button(raiz, text="Run!", pady=2, padx=2, command=codeButtonRun)
+
+botonRun.pack()
+
+numberOfRuns = 0
+numberOfGenerations = 0
+sizeOfInitialPopulation = 0
+dimension = 0
+
+def close_window(): 
+    raiz.destroy()
+
+raiz.mainloop()
 
 
-firstGeneration = initPopulation(sizeOfInitialPopilation,dimension)
-for i in firstGeneration:
-    i.showContent()
+'''
+numberOfRuns = 1
+numberOfGenerations = 100
+sizeOfInitialPopulation = 120
+dimension = 5
+'''
+
+#main(numberOfRuns)
