@@ -1,6 +1,6 @@
 from Writer import *
-from Ackley import getAckleyResult
-from Filtro import getSupervivientes
+from Ackley import *
+from Filtro import *
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -30,7 +30,7 @@ class ListOfPairs():
         self.fitnessValue = -1.0
         for i in range(dimension):
             self.variables.append(np.random.randint(low=minVariableValue, high=maxVariableValue))
-            self.deviations.append('{0:.5g}'.format(np.random.uniform(low=0.0, high=2.0)))
+            self.deviations.append('{0:.5g}'.format(np.random.uniform(low=1.0, high=2.0)))
 
     # Muestra todas las variables
     def showVariables(self):
@@ -76,7 +76,7 @@ def initOptimazedPopulation(sizeOfInitialPopulation,dimension):
         variables = []
         temp = ListOfPairs(dimension)
         for i in range(dimension):
-                variables.append(np.random.randint(low=-45, high=45))
+            variables.append(np.random.randint(low=-45, high=45))
         temp.variables = variables
         initPopulation.append(temp)
     return initPopulation
@@ -89,6 +89,8 @@ def getMutatedElements(listOfPairs):
     for k in range(len(listOfPairs.variables)):
         tempMutatedDeviation = (float(listOfPairs.deviations[k])*(1+alpha*(np.random.normal(0,1))))
         tempMutatedVariable = (listOfPairs.variables[k]+tempMutatedDeviation*(np.random.normal(0,1)))
+        if((tempMutatedVariable > maxVariableValue) or (tempMutatedVariable < minVariableValue)):
+            tempMutatedVariable = np.random.randint(low=minVariableValue, high=maxVariableValue)
         mutatedVariables.append(tempMutatedVariable)
         mutatedDeviations.append(tempMutatedDeviation)
     instanceOfListOfPairs = ListOfPairs(dimension)
@@ -113,15 +115,21 @@ def getNextGeneration(oldGeneration):
     for element in listOfChilds: 
         element.fitnessValue = getAckleyResult(element.variables)
 
-    listOfSupervivientes = getSupervivientes(oldGeneration, listOfChilds)
+    listOfSupervivientes = []
+    if (filtroSeleccionado==1):
+        listOfSupervivientes = getSupervivientesTorneo(oldGeneration, listOfChilds)
+    else:
+        listOfSupervivientes = getSupervivientesElitismo(oldGeneration, listOfChilds)
     return listOfSupervivientes
 
 # Metodo que lleva a cabo el proceso evolutivo
 def initRun(path, numberOfRun,numberOfGenerations, sizeOfInitialPopulation, dimension):
-    targetGeneration = initPopulation(sizeOfInitialPopulation, dimension) # Primera generacion
+    targetGeneration = []    
 
     if(metodoInicial == 1):
         targetGeneration = initOptimazedPopulation(sizeOfInitialPopulation,dimension)
+    else:
+        targetGeneration = initPopulation(sizeOfInitialPopulation, dimension)
 
     fileRunName = "Run" + str(numberOfRun)
 
@@ -151,6 +159,10 @@ def initRun(path, numberOfRun,numberOfGenerations, sizeOfInitialPopulation, dime
             break
         hardcodedFlag+=1
 
+        minVariablesRun = targetGeneration[0].variables
+        maxVariablesRun = targetGeneration[0].variables
+
+    count = 0
     # Corro el algoritmo tantas veces como generaciones me hayan asignado
     for xi in range(numberOfGenerations):
         targetGeneration = getNextGeneration(targetGeneration)
@@ -158,14 +170,19 @@ def initRun(path, numberOfRun,numberOfGenerations, sizeOfInitialPopulation, dime
         listaDeDatos.append(tempTuple)
         if(tempTuple[0] < minFitnessOfRun):
             minFitnessOfRun = tempTuple[0]
+            minVariablesRun = tempTuple[3]
         if(tempTuple[1] > maxFitnessOfRun):
             maxFitnessOfRun = tempTuple[1]
+            maxVariablesRun = tempTuple[4]
         avgFitnessOfRun+=tempTuple[2]
     avgFitnessOfRun = avgFitnessOfRun / numberOfGenerations
+    count+=1
+    if (count % 500 == 0):
+        collect()
 
     listaDeAvg = getAllAvgOfRun(listaDeDatos)
 
-    documentateHeader(file, minFitnessOfRun, maxFitnessOfRun, avgFitnessOfRun)
+    documentateHeader(file, minFitnessOfRun, maxFitnessOfRun, avgFitnessOfRun, minVariablesRun, maxVariablesRun)
     documentateBody(file, listaDeDatos)
     documentatePlots(path,numberOfRun,listaDeAvg)
     
@@ -177,15 +194,19 @@ def getTupleValues(actualGeneration):
     minValue = actualGeneration[0].fitnessValue
     maxValue = actualGeneration[0].fitnessValue
     avgValue = 0
+    minVariables = []
+    maxVariables = []
 
     for elem in actualGeneration:
-        if(elem.fitnessValue < minValue):
+        if(elem.fitnessValue <= minValue):
             minValue=elem.fitnessValue
-        if(elem.fitnessValue > maxValue):
+            minVariables = elem.variables
+        if(elem.fitnessValue >= maxValue):
             maxValue=elem.fitnessValue
+            maxVariables=elem.variables
         avgValue += elem.fitnessValue
     avgValue = avgValue / (len(actualGeneration))
-    temp = (minValue, maxValue, avgValue)
+    temp = (minValue, maxValue, avgValue,minVariables,maxVariables)
     return temp
 
 
@@ -199,7 +220,7 @@ def main(numberOfRuns):
     os.mkdir(path)
     fileRunName = "Especificaciones de las corridas"
     fileSetup = open(path + "/"+ fileRunName +".txt", "w") 
-    documentateSetup(fileSetup, numberOfRuns, sizeOfInitialPopulation, numberOfGenerations, dimension, metodoInicial)
+    documentateSetup(fileSetup, numberOfRuns, sizeOfInitialPopulation, numberOfGenerations, dimension, metodoInicial, filtroSeleccionado)
     fileSetup.close()
     count = 1
     for i in range(numberOfRuns):
@@ -230,25 +251,33 @@ cuadroDimension.focus_set()
 cuadroDimension.grid(row=3, column=1, pady=4)
 
 runsLabel = Label(miFrame, text="Number of runs:")
-runsLabel.grid(row=0, column=0, sticky="e", pady=4)
+runsLabel.grid(row=0, column=0, sticky="ne", pady=4)
 
 generationLabel = Label(miFrame, text="Number of generations:")
-generationLabel.grid(row=1, column=0, sticky="e", pady=4)
+generationLabel.grid(row=1, column=0, sticky="ne", pady=4)
 
 poblacionLabel = Label(miFrame, text="Population size:")
-poblacionLabel.grid(row=2, column=0, sticky="e", pady=4)
+poblacionLabel.grid(row=2, column=0, sticky="ne", pady=4)
 
 dimensionLabel = Label(miFrame, text="Dimention")
-dimensionLabel.grid(row=3, column=0, sticky="e", pady=4)
+dimensionLabel.grid(row=3, column=0, sticky="ne", pady=4)
 
 
-varOpcion = IntVar()
-Radiobutton(raiz,text='Utilizar valores optimizados',variable=varOpcion,value=1).pack()
-Radiobutton(raiz,text='Utilizar valores optimizados',variable=varOpcion,value=1).select()
-Radiobutton(raiz,text='Utilizar valores totalmente estocasticos',variable=varOpcion,value=2).pack()
+varOpcionMetodoInicial = IntVar()
+Radiobutton(raiz,text='Utilizar valores optimizados',variable=varOpcionMetodoInicial,value=1).pack()
+Radiobutton(raiz,text='Utilizar valores optimizados',variable=varOpcionMetodoInicial,value=1).select()
+Radiobutton(raiz,text='Utilizar valores totalmente estocasticos',variable=varOpcionMetodoInicial,value=2).pack()
+
+varOpcionfiltroSeleccionado = IntVar()
+Radiobutton(raiz,text='Utilizar torneo - presion selectiva',variable=varOpcionfiltroSeleccionado,value=1).pack()
+Radiobutton(raiz,text='Utilizar torneo - presion selectiva',variable=varOpcionfiltroSeleccionado,value=1).select()
+Radiobutton(raiz,text='Utilizar metodo de seleccion elitista',variable=varOpcionfiltroSeleccionado,value=2).pack()
 
 inicialLabel = Label(miFrame, text = 'Valores iniciales:')
 inicialLabel.grid(row=4,column=0,sticky='w',pady=4)
+
+filtroLabel = Label(miFrame, text = 'Metodo de seleccion de supervivientes:')
+filtroLabel.grid(row=5,column=0,sticky='w',pady=4)
 
 
 def codeButtonRun():
@@ -257,12 +286,14 @@ def codeButtonRun():
     global sizeOfInitialPopulation
     global dimension
     global metodoInicial
+    global filtroSeleccionado
     numberOfRunsx = cuadroRuns.get()
     sizeOfInitialPopulationx = cuadroPoblacion.get()
     numberOfGenerationsx = cuadroGeneration.get()
     dimensionx = cuadroDimension.get()
 
-    metodoInicial=int(varOpcion.get())
+    metodoInicial=int(varOpcionMetodoInicial.get())
+    filtroSeleccionado = int(varOpcionfiltroSeleccionado.get())
     numberOfRuns = int(numberOfRunsx)
     sizeOfInitialPopulation = int(sizeOfInitialPopulationx)
     numberOfGenerations = int(numberOfGenerationsx)
@@ -280,6 +311,7 @@ numberOfGenerations = 0
 sizeOfInitialPopulation = 0
 dimension = 0
 metodoInicial = 1
+filtroSeleccionado = 1
 
 def close_window(): 
     raiz.destroy()

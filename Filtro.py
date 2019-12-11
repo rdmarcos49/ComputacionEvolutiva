@@ -1,7 +1,7 @@
 import numpy as np
 
 # Dado los padres y sus hijos, devuelve a los que sobrevivieron a la seleccion
-def getSupervivientes(listOfParents, listOfChilds):
+def getSupervivientesTorneo(listOfParents, listOfChilds):
 
     listOfParentsAndChilds = listOfParents + listOfChilds # Los padres ya tenian fitness asignado, y los hijos lo asigne recien
     
@@ -20,24 +20,33 @@ def getSupervivientes(listOfParents, listOfChilds):
     	identifier+=1 # referencia al proximo elemento
     	competitors = np.random.randint(low=0, high=(len(listOfParentsAndChilds)), size=(5)) # elijo otros 5 sujetos al azar
 
-    sortedPossibleSurvivors = sorted(posibbleSurvivors, key=lambda x: x[1])
-
+    
     limitOfElite = len(listOfParents)*0.1
     limitOfElite = int(np.round(limitOfElite))
 
-    survivors = sortedPossibleSurvivors[0:limitOfElite] # dejo en sobrevivientes a la elite que gano el torneo
-    posibbleSurvivors = posibbleSurvivors[limitOfElite+1:] # mis nuevos posibles sobrevivientes son el resto
+    posibbleSurvivors.sort(key=lambda x: x[1])
+    survivors = posibbleSurvivors[0:limitOfElite]
+    theWorstElements = np.random.randint(low=limitOfElite, high=len(posibbleSurvivors), size=(len(listOfParents)-limitOfElite))
+    for k in theWorstElements:
+    	survivors.append(posibbleSurvivors[k])
+    posibbleSurvivors.clear()
+    for j in survivors:
+    	posibbleSurvivors.append(listOfParentsAndChilds[j[0]])
 
-    theWorstGeneration = np.random.randint(low=0, high=len(posibbleSurvivors), size=(len(listOfParents)-limitOfElite)) # tomo un subconjunto al azar restante
+    return posibbleSurvivors
 
-    realSurvivors = []
-    for s in survivors:
-    	realSurvivors.append(listOfParentsAndChilds[s[0]])
+def getSupervivientesElitismo(listOfParents, listOfChilds):
+	listOfParentsAndChilds = listOfParents + listOfChilds
 
-    # estos son LISTOFPAIRS
-    for i in theWorstGeneration: # asigno elementos random a la lista de sobrevivientes
-    	realSurvivors.append(listOfParentsAndChilds[i])
+	listOfParentsAndChilds.sort(key=lambda x: x.fitnessValue)
+	
+	limitOfElite = len(listOfParents)*0.1
+	limitOfElite = int(np.round(limitOfElite))
 
+	survivors = listOfParentsAndChilds[0:limitOfElite]
 
-    return realSurvivors
+	randomIndex = np.random.randint(low=limitOfElite+1, high=len(listOfParentsAndChilds), size=(len(listOfParents))-limitOfElite)
+	for ri in randomIndex:
+		survivors.append(listOfParentsAndChilds[ri])
 
+	return survivors
