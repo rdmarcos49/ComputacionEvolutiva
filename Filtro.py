@@ -18,7 +18,7 @@ def getSupervivientesTorneo(listOfParents, listOfChilds):
     	posibbleSurvivors.append((identifier,acumulatePoints))
     	acumulatePoints = 0 # reinicio el contador de puntos a 0
     	identifier+=1 # referencia al proximo elemento
-    	competitors = np.random.randint(low=0, high=(len(listOfParentsAndChilds)), size=(5)) # elijo otros 5 sujetos al azar
+    	competitors = np.random.randint(low=0, high=(len(listOfParentsAndChilds)), size=(10)) # elijo otros 10 sujetos al azar
 
     
     limitOfElite = len(listOfParents)*0.1

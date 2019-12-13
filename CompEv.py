@@ -17,8 +17,6 @@ maxVariableValue = 32767
 # Valor alfa para la mutacion
 alpha = 0.2
 
-elitePercent = 0.1
-
 
 class ListOfPairs():
 
@@ -29,8 +27,8 @@ class ListOfPairs():
         self.deviations = []
         self.fitnessValue = -1.0
         for i in range(dimension):
-            self.variables.append(np.random.randint(low=minVariableValue, high=maxVariableValue))
-            self.deviations.append('{0:.5g}'.format(np.random.uniform(low=1.0, high=2.0)))
+            self.variables.append(np.random.randint(low=-1000, high=1000))
+            self.deviations.append('{0:.5g}'.format(np.random.uniform(low=4, high=7)))
 
     # Muestra todas las variables
     def showVariables(self):
@@ -65,8 +63,9 @@ def getAllAvgOfRun(listaDeTuplas): # por convencion el avg esta en listaDeTuplas
 # Inicializo la poblacion, pasando el tamaño de la misma, y la dimension para ackley
 def initPopulation(sizeOfInitialPopulation,dimension):
     firstGeneration = []
-    for step in range(sizeOfInitialPopulation):
+    for i in range(sizeOfInitialPopulation):
         listOfPair = ListOfPairs(dimension)
+        listOfPair.fitnessValue = getAckleyResult(listOfPair.variables)
         firstGeneration.append(listOfPair)
     return firstGeneration
 
@@ -78,31 +77,45 @@ def initOptimazedPopulation(sizeOfInitialPopulation,dimension):
         for i in range(dimension):
             variables.append(np.random.randint(low=-45, high=45))
         temp.variables = variables
+        temp.fitnessValue = getAckleyResult(temp.variables)
         initPopulation.append(temp)
     return initPopulation
+
+###########################################################################################
 
 # Funcion que le paso una lista de variables y desviaciones, devolviendome una lista de 
 # igual longitud con los elementos mutados
 def getMutatedElements(listOfPairs):
     mutatedVariables = []
     mutatedDeviations = []
+    desviadorGeneral = np.random.normal(0,1)
     for k in range(len(listOfPairs.variables)):
-        tempMutatedDeviation = (float(listOfPairs.deviations[k])*(1+alpha*(np.random.normal(0,1))))
+
+        tempMutatedDeviation = (float(listOfPairs.deviations[k])*(1+alpha*(desviadorGeneral)))
         tempMutatedVariable = (listOfPairs.variables[k]+tempMutatedDeviation*(np.random.normal(0,1)))
+
         if((tempMutatedVariable > maxVariableValue) or (tempMutatedVariable < minVariableValue)):
             tempMutatedVariable = np.random.randint(low=minVariableValue, high=maxVariableValue)
         mutatedVariables.append(tempMutatedVariable)
         mutatedDeviations.append(tempMutatedDeviation)
+
     instanceOfListOfPairs = ListOfPairs(dimension)
     instanceOfListOfPairs.variables = mutatedVariables
     instanceOfListOfPairs.deviations = mutatedDeviations
     return instanceOfListOfPairs
 
+###########################################################################################
+
 # Me devuelve los hijos de mi generacion actual (pero no es la generacion siguiente)
 def getChilds(listOfParents):
     listOfChilds = []
+    count = 0
+
+    # Obtengo el hijo de cada padre y le asigno a la vez su fitness
     for parent in listOfParents:
         listOfChilds.append(getMutatedElements(parent))
+        listOfChilds[count].fitnessValue = getAckleyResult(listOfChilds[count].variables)
+        count+=1
     return listOfChilds
 
 
@@ -111,16 +124,31 @@ def getChilds(listOfParents):
 def getNextGeneration(oldGeneration):
     listOfChilds = getChilds(oldGeneration)
 
-    # Le asigno un valor de fitness a cada hijo
-    for element in listOfChilds: 
-        element.fitnessValue = getAckleyResult(element.variables)
-
     listOfSupervivientes = []
     if (filtroSeleccionado==1):
         listOfSupervivientes = getSupervivientesTorneo(oldGeneration, listOfChilds)
     else:
         listOfSupervivientes = getSupervivientesElitismo(oldGeneration, listOfChilds)
     return listOfSupervivientes
+
+def getTupleValues(actualGeneration):
+    minValue = actualGeneration[0].fitnessValue
+    maxValue = actualGeneration[0].fitnessValue
+    avgValue = 0
+    minVariables = []
+    maxVariables = []
+
+    for elem in actualGeneration:
+        if(elem.fitnessValue <= minValue):
+            minValue=elem.fitnessValue
+            minVariables = elem.variables
+        if(elem.fitnessValue >= maxValue):
+            maxValue=elem.fitnessValue
+            maxVariables=elem.variables
+        avgValue += elem.fitnessValue
+    avgValue = avgValue / (len(actualGeneration))
+    temp = (minValue, maxValue, avgValue,minVariables,maxVariables)
+    return temp
 
 # Metodo que lleva a cabo el proceso evolutivo
 def initRun(path, numberOfRun,numberOfGenerations, sizeOfInitialPopulation, dimension):
@@ -132,15 +160,7 @@ def initRun(path, numberOfRun,numberOfGenerations, sizeOfInitialPopulation, dime
         targetGeneration = initPopulation(sizeOfInitialPopulation, dimension)
 
     fileRunName = "Run" + str(numberOfRun)
-
-    # crear archivo
     file = open(path + "/"+ fileRunName +".txt", "w") 
-
-
-    # Le inicializo el fitness a la primera generacion
-    for elem in targetGeneration:
-        elem.fitnessValue = getAckleyResult(elem.variables)
-
 
     listaDeDatos = []
     listaDeDatos.append(getTupleValues(targetGeneration))
@@ -166,6 +186,9 @@ def initRun(path, numberOfRun,numberOfGenerations, sizeOfInitialPopulation, dime
     # Corro el algoritmo tantas veces como generaciones me hayan asignado
     for xi in range(numberOfGenerations):
         targetGeneration = getNextGeneration(targetGeneration)
+        ##########################
+
+        ##########################
         tempTuple = getTupleValues(targetGeneration)
         listaDeDatos.append(tempTuple)
         if(tempTuple[0] < minFitnessOfRun):
@@ -177,6 +200,7 @@ def initRun(path, numberOfRun,numberOfGenerations, sizeOfInitialPopulation, dime
         avgFitnessOfRun+=tempTuple[2]
     avgFitnessOfRun = avgFitnessOfRun / numberOfGenerations
     count+=1
+
     if (count % 500 == 0):
         collect()
 
@@ -189,26 +213,6 @@ def initRun(path, numberOfRun,numberOfGenerations, sizeOfInitialPopulation, dime
     file.close()
 
     return targetGeneration
-
-def getTupleValues(actualGeneration):
-    minValue = actualGeneration[0].fitnessValue
-    maxValue = actualGeneration[0].fitnessValue
-    avgValue = 0
-    minVariables = []
-    maxVariables = []
-
-    for elem in actualGeneration:
-        if(elem.fitnessValue <= minValue):
-            minValue=elem.fitnessValue
-            minVariables = elem.variables
-        if(elem.fitnessValue >= maxValue):
-            maxValue=elem.fitnessValue
-            maxVariables=elem.variables
-        avgValue += elem.fitnessValue
-    avgValue = avgValue / (len(actualGeneration))
-    temp = (minValue, maxValue, avgValue,minVariables,maxVariables)
-    return temp
-
 
     
 
@@ -317,13 +321,3 @@ def close_window():
     raiz.destroy()
 
 raiz.mainloop()
-
-
-'''
-numberOfRuns = 1
-numberOfGenerations = 100
-sizeOfInitialPopulation = 120
-dimension = 5
-'''
-
-#main(numberOfRuns)
