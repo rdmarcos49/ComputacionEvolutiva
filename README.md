@@ -1,5 +1,4 @@
 # Computacion Evolutiva
 
-A continuacion se listan los metodos que se implementaron,para asi tener una mejor vision del proyecto y lo que hace cada seccion del codigo:
-
-++ hay que cambiar los metodos, todo fue alterado ++
+The very beginning of an old project, written in python. This is an evolutionary app, created in order to generate a result for the Ackley function.
+https://en.wikipedia.org/wiki/Ackley_function
